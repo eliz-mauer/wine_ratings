@@ -11,10 +11,10 @@ output:
      collapsed: false
      smooth_scroll: false
 params:
-  glimpse: TRUE
+  glimpse: FALSE
   country:
     label: "Country"
-    value: [US, France, Italy]
+    value: [US]
     input: select
     choices: [US, France, Italy, Argentina, Australia, Germany, Chile, South Africa]
     multiple: TRUE
@@ -38,6 +38,7 @@ library('tidyverse')
 library('table1')
 library('compareGroups')
 library('broom')
+library('plotly')
 
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE, fig.width = 4, fig.height = 4, fig.path=here('Output'))
 
@@ -103,11 +104,13 @@ ggplot(wine_ratings, aes(x=points, y=price)) +
 
 
 ```{r, fig.width=7, fig.height=7}
-ggplot(wine_ratings, aes(x=points, y=price)) +
+stratscatt <- ggplot(wine_ratings, aes(x=points, y=price, text=title)) +
   geom_point() +
   facet_wrap(~ variety) +
   scale_y_continuous(limits=c(0, params$maxprice)) +
   ggtitle("Wine Price by Points")
+
+ggplotly(stratscatt)
 
 wine_ratings <- wine_ratings %>% 
   mutate(points=factor(as.character(points)))

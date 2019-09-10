@@ -1,0 +1,123 @@
+---
+title: "Wine Ratings"
+author: "Elizabeth A. Mauer"
+date: "`r format(Sys.Date())`"
+output:
+ html_document:
+   toc: true
+   toc_depth: 4
+   keep_md: true
+   toc_float:
+     collapsed: false
+     smooth_scroll: false
+params:
+  glimpse: TRUE
+  country:
+    label: "Country"
+    value: [US, France, Italy]
+    input: select
+    choices: [US, France, Italy, Argentina, Australia, Germany, Chile, South Africa]
+    multiple: TRUE
+  variety: 
+    label: "Variety"
+    value: ["Cabernet Sauvignon", "Chardonnay", "Merlot", "Sauvignon Blanc"]
+    choices: ["Cabernet Sauvignon", "Chardonnay", "Merlot", "Sauvignon Blanc", "Malbec", "Pinot Noir"]
+    multiple: TRUE
+  maxprice:
+    label: "Max Price"
+    value: 20
+    input: slider
+    min: 0
+    max: 2000
+---
+
+
+```{r setup, include=FALSE}
+library('here')
+library('tidyverse')
+library('table1')
+library('compareGroups')
+library('broom')
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, fig.width = 4, fig.height = 4, fig.path=here('Output'))
+
+wine_ratings <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-05-28/winemag-data-130k-v2.csv")
+
+## Subset to varieties of interest
+wine_ratings <- wine_ratings %>% 
+  filter(variety %in% params$variety,
+         country %in% params$country,
+         !is.na(price),
+         price < params$maxprice)
+```
+
+## Data Summary Statistics 
+
+```{r, eval=params$glimpse}
+glimpse(wine_ratings)
+```
+
+
+```{r}
+table1(~ country + points + price + variety, data = wine_ratings, droplevels = F, overall = "Overall")
+
+ggplot(wine_ratings, aes(y=points)) +
+  geom_boxplot()
+ggplot(wine_ratings, aes(y=price)) +
+  geom_boxplot()
+```
+
+## Bivariate Relationships with Price {.tabset .tabset-fade .tabset-pills}
+
+### Country
+
+```{r}
+createTable(compareGroups(country ~ price, data=wine_ratings, method=NA), show.n=TRUE)
+
+ggplot(wine_ratings, aes(x=country, y=price)) +
+  geom_boxplot()
+```
+
+### Variety
+
+```{r}
+createTable(compareGroups(variety ~ price, data=wine_ratings, method=NA), show.n=TRUE)
+
+ggplot(wine_ratings, aes(x=variety, y=price)) +
+  geom_boxplot()
+```
+
+
+### Points
+
+```{r}
+print("Linear Regression:")
+tidy(glm(price ~ points, data=wine_ratings, family="gaussian"))
+
+ggplot(wine_ratings, aes(x=points, y=price)) + 
+  geom_point()
+```
+
+
+## Price by Points, Stratified by Variety
+
+
+```{r, fig.width=7, fig.height=7}
+ggplot(wine_ratings, aes(x=points, y=price)) +
+  geom_point() +
+  facet_wrap(~ variety) +
+  scale_y_continuous(limits=c(0, params$maxprice)) +
+  ggtitle("Wine Price by Points")
+
+wine_ratings <- wine_ratings %>% 
+  mutate(points=factor(as.character(points)))
+
+ggplot(wine_ratings, aes(x=points, y=price)) +
+  geom_boxplot() +
+  facet_wrap(~ variety) +
+  scale_y_continuous(limits=c(0, params$maxprice)) +
+  ggtitle("Wine Price by Points")
+```
+
+
+
